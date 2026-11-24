@@ -4,15 +4,23 @@ import {
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
   updateProfile,
-  onAuthStateChanged
+  onAuthStateChanged,
+  signOut,
+  deleteUser
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
   doc,
   setDoc,
+  getDoc,
+  getDocs,
+  collection,
+  query,
+  where,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-const PAGINA_DESTINO = "dashboard.html"; // tela que será criada depois
+const PAGINA_MEDICO = "dashboard.html";
+const PAGINA_PACIENTE = "paciente.html";
 
 const formularios = {
   login: document.getElementById("form-login"),
@@ -20,10 +28,17 @@ const formularios = {
   recuperar: document.getElementById("form-recuperar")
 };
 
-const textos = {
-  login: ["Entrar na sua conta", "Use o e-mail e a senha do seu cadastro."],
-  cadastro: ["Criar conta de médico", "Preencha os dados para começar a cadastrar pacientes."],
-  recuperar: ["Recuperar senha", "Informe seu e-mail e enviaremos um link para criar uma nova senha."]
+const textosPorPerfil = {
+  medico: {
+    login: ["Entrar na sua conta", "Use o e-mail e a senha do seu cadastro."],
+    cadastro: ["Criar conta de médico", "Preencha os dados para começar a cadastrar pacientes."],
+    recuperar: ["Recuperar senha", "Informe seu e-mail e enviaremos um link para criar uma nova senha."]
+  },
+  paciente: {
+    login: ["Área do paciente", "Entre para ver sua situação e suas metas."],
+    cadastro: ["Primeiro acesso", "Crie sua senha usando o e-mail que seu médico cadastrou."],
+    recuperar: ["Recuperar senha", "Informe seu e-mail e enviaremos um link para criar uma nova senha."]
+  }
 };
 
 const titulo = document.getElementById("titulo");
@@ -31,19 +46,35 @@ const subtitulo = document.getElementById("subtitulo");
 const caixaMensagem = document.getElementById("mensagem");
 const abaLogin = document.getElementById("aba-login");
 const abaCadastro = document.getElementById("aba-cadastro");
+const btnMedico = document.getElementById("perfil-medico");
+const btnPaciente = document.getElementById("perfil-paciente");
 
 let cadastrando = false;
+let perfil = "medico";
+let viewAtual = "login";
 
 /* ---------- Navegação entre as telas ---------- */
 function mostrar(view) {
+  viewAtual = view;
   Object.entries(formularios).forEach(([nome, form]) => {
     form.hidden = nome !== view;
   });
-  [titulo.textContent, subtitulo.textContent] = textos[view];
+  [titulo.textContent, subtitulo.textContent] = textosPorPerfil[perfil][view];
   abaLogin.setAttribute("aria-selected", view === "login");
   abaCadastro.setAttribute("aria-selected", view === "cadastro");
   limparMensagem();
 }
+
+function definirPerfil(novo) {
+  perfil = novo;
+  btnMedico.setAttribute("aria-selected", novo === "medico");
+  btnPaciente.setAttribute("aria-selected", novo === "paciente");
+  document.querySelectorAll(".so-medico").forEach((el) => (el.hidden = novo !== "medico"));
+  document.querySelectorAll(".so-paciente").forEach((el) => (el.hidden = novo !== "paciente"));
+  mostrar(viewAtual);
+}
+btnMedico.addEventListener("click", () => definirPerfil("medico"));
+btnPaciente.addEventListener("click", () => definirPerfil("paciente"));
 
 document.querySelectorAll("[data-view]").forEach((el) => {
   el.addEventListener("click", () => mostrar(el.dataset.view));
@@ -75,6 +106,9 @@ function traduzirErro(codigo) {
   return erros[codigo] || "Algo deu errado. Tente novamente.";
 }
 
+// erros próprios (sem código do Firebase) mostram a própria mensagem
+const textoErro = (erro) => (erro.code ? traduzirErro(erro.code) : erro.message || traduzirErro());
+
 /* ---------- Botão de carregamento ---------- */
 async function comCarregamento(form, textoEnvio, acao) {
   const botao = form.querySelector('button[type="submit"]');
@@ -100,6 +134,12 @@ document.querySelectorAll(".ver-senha").forEach((botao) => {
   });
 });
 
+/* ---------- Descobre se a conta é de médico ou de paciente ---------- */
+async function paginaDoUsuario(user) {
+  const snap = await getDoc(doc(db, "medicos", user.uid));
+  return snap.exists() ? PAGINA_MEDICO : PAGINA_PACIENTE;
+}
+
 /* ---------- Login ---------- */
 formularios.login.addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -114,11 +154,26 @@ formularios.login.addEventListener("submit", async (e) => {
   }
 
   await comCarregamento(formularios.login, "Entrando...", async () => {
+    cadastrando = true; // segura o redirecionamento automático até conferir o tipo de conta
     try {
-      await signInWithEmailAndPassword(auth, email, senha);
-      window.location.href = PAGINA_DESTINO;
+      const { user } = await signInWithEmailAndPassword(auth, email, senha);
+      const destino = await paginaDoUsuario(user);
+      const esperado = perfil === "medico" ? PAGINA_MEDICO : PAGINA_PACIENTE;
+      if (destino !== esperado) {
+        await signOut(auth);
+        mostrarMensagem(
+          perfil === "medico"
+            ? "Esta conta não é de médico. Use a aba “Sou paciente”."
+            : "Esta conta é de médico. Use a aba “Sou médico”.",
+          "erro"
+        );
+        return;
+      }
+      window.location.href = destino;
     } catch (erro) {
-      mostrarMensagem(traduzirErro(erro.code), "erro");
+      mostrarMensagem(textoErro(erro), "erro");
+    } finally {
+      cadastrando = false;
     }
   });
 });
@@ -129,13 +184,23 @@ formularios.cadastro.addEventListener("submit", async (e) => {
   limparMensagem();
 
   const nome = document.getElementById("cad-nome").value.trim();
-  const email = document.getElementById("cad-email").value.trim();
+  const email = document.getElementById("cad-email").value.trim().toLowerCase();
   const senha = document.getElementById("cad-senha").value;
   const senha2 = document.getElementById("cad-senha2").value;
+  const crm = document.getElementById("cad-crm").value.trim();
+  const uf = document.getElementById("cad-uf").value.trim().toUpperCase();
+  const telefone = document.getElementById("cad-tel").value.trim();
+  const especialidade = document.getElementById("cad-esp").value.trim();
 
   if (!nome || !email || !senha) {
     mostrarMensagem("Preencha todos os campos.", "erro");
     return;
+  }
+  if (perfil === "medico") {
+    if (!/^\d{4,8}$/.test(crm) || !/^[A-Z]{2}$/.test(uf) || !especialidade) {
+      mostrarMensagem("Informe CRM (só números), UF com 2 letras e a especialidade.", "erro");
+      return;
+    }
   }
   if (senha.length < 6) {
     mostrarMensagem("A senha precisa ter pelo menos 6 caracteres.", "erro");
@@ -148,21 +213,38 @@ formularios.cadastro.addEventListener("submit", async (e) => {
 
   await comCarregamento(formularios.cadastro, "Criando conta...", async () => {
     cadastrando = true; // evita redirecionar antes de salvar o perfil
+    let user = null;
     try {
-      const { user } = await createUserWithEmailAndPassword(auth, email, senha);
+      ({ user } = await createUserWithEmailAndPassword(auth, email, senha));
       await updateProfile(user, { displayName: nome });
-      try {
-        await setDoc(doc(db, "medicos", user.uid), {
-          nome,
-          email,
-          criadoEm: serverTimestamp()
-        });
-      } catch (erroPerfil) {
-        console.error("Não foi possível salvar o perfil do médico:", erroPerfil);
+
+      if (perfil === "medico") {
+        try {
+          await setDoc(doc(db, "medicos", user.uid), {
+            nome,
+            email,
+            crm,
+            uf,
+            especialidade,
+            telefone,
+            criadoEm: serverTimestamp()
+          });
+        } catch (erroPerfil) {
+          console.error("Não foi possível salvar o perfil do médico:", erroPerfil);
+        }
+        window.location.href = PAGINA_MEDICO;
+      } else {
+        // paciente só entra se o médico já o cadastrou com esse e-mail
+        const achou = await getDocs(query(collection(db, "pacientes"), where("email", "==", email)));
+        if (achou.empty) {
+          await deleteUser(user);
+          user = null;
+          throw new Error("Nenhum cadastro encontrado para este e-mail. Peça ao seu médico para cadastrá-lo primeiro.");
+        }
+        window.location.href = PAGINA_PACIENTE;
       }
-      window.location.href = PAGINA_DESTINO;
     } catch (erro) {
-      mostrarMensagem(traduzirErro(erro.code), "erro");
+      mostrarMensagem(textoErro(erro), "erro");
     } finally {
       cadastrando = false;
     }
@@ -201,8 +283,10 @@ formularios.recuperar.addEventListener("submit", async (e) => {
 });
 
 /* ---------- Quem já está logado vai direto para o sistema ---------- */
-onAuthStateChanged(auth, (usuario) => {
+onAuthStateChanged(auth, async (usuario) => {
   if (usuario && !cadastrando) {
-    window.location.href = PAGINA_DESTINO;
+    window.location.href = await paginaDoUsuario(usuario);
   }
 });
+
+definirPerfil("medico");

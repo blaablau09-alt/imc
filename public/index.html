@@ -1,97 +1,42 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Acesso do médico | Controle de IMC</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css">
-</head>
-<body>
-  <div class="layout">
+<html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Acesso | Clínica</title><link rel="stylesheet" href="css/style.css"></head>
+<body><main class="auth"><div class="card">
+<div class="abas" role="tablist" aria-label="Tipo de acesso">
+  <button type="button" id="perfil-medico" aria-selected="true">Sou médico</button>
+  <button type="button" id="perfil-paciente" aria-selected="false">Sou paciente</button>
+</div>
+<h1 id="titulo" style="font-size:1.4rem"></h1><p id="subtitulo" class="mt"></p>
+<div id="mensagem" class="mensagem" hidden role="alert"></div>
+<div class="abas"><button type="button" id="aba-login" data-view="login" aria-selected="true">Já tenho cadastro</button>
+<button type="button" id="aba-cadastro" data-view="cadastro" aria-selected="false">Quero me cadastrar</button></div>
 
-    <section class="intro">
-      <p class="marca">Controle de IMC</p>
-      <div class="intro-centro">
-        <h1>Cada consulta mostra para onde o paciente está indo.</h1>
-        <div class="escala-bloco">
-          <div class="escala-trilho">
-            <div class="escala" role="img" aria-label="Faixas de IMC: abaixo do peso, normal, sobrepeso e obesidade">
-              <span class="faixa f1"></span><span class="faixa f2"></span><span class="faixa f3"></span><span class="faixa f4"></span>
-            </div>
-            <span class="marcador" aria-hidden="true">IMC 22,4</span>
-          </div>
-          <ul class="legenda">
-            <li>Abaixo do peso</li><li>Normal</li><li>Sobrepeso</li><li>Obesidade</li>
-          </ul>
-        </div>
-      </div>
-      <p class="rodape-intro">Pacientes, metas e observações em um só lugar.</p>
-    </section>
+<form id="form-login">
+  <label for="login-email">E-mail</label><input id="login-email" type="email" autocomplete="email">
+  <label for="login-senha">Senha</label><div class="senha"><input id="login-senha" type="password" autocomplete="current-password"><button type="button" class="ver-senha" data-alvo="login-senha">Mostrar</button></div>
+  <p><button type="button" class="link" data-view="recuperar">Esqueci minha senha</button></p>
+  <button type="submit" style="width:100%">Entrar</button>
+</form>
 
-    <main class="painel">
-      <div class="caixa">
-        <div class="abas" role="tablist" aria-label="Tipo de acesso">
-          <button type="button" role="tab" id="aba-login" aria-selected="true" data-view="login">Já tenho cadastro</button>
-          <button type="button" role="tab" id="aba-cadastro" aria-selected="false" data-view="cadastro">Quero me cadastrar</button>
-        </div>
-
-        <h2 id="titulo">Entrar na sua conta</h2>
-        <p id="subtitulo" class="subtitulo">Use o e-mail e a senha do seu cadastro.</p>
-
-        <p id="mensagem" class="mensagem" role="status" aria-live="polite" hidden></p>
-
-        <!-- Login -->
-        <form id="form-login" novalidate>
-          <label for="login-email">E-mail</label>
-          <input id="login-email" type="email" autocomplete="email" required>
-
-          <label for="login-senha">Senha</label>
-          <div class="campo-senha">
-            <input id="login-senha" type="password" autocomplete="current-password" required>
-            <button type="button" class="ver-senha" data-alvo="login-senha" aria-label="Mostrar senha">Mostrar</button>
-          </div>
-
-          <button type="button" class="link" data-view="recuperar">Esqueci minha senha</button>
-          <button type="submit" class="botao">Entrar</button>
-        </form>
-
-        <!-- Cadastro -->
-        <form id="form-cadastro" novalidate hidden>
-          <label for="cad-nome">Nome completo</label>
-          <input id="cad-nome" type="text" autocomplete="name" required>
-
-          <label for="cad-email">E-mail</label>
-          <input id="cad-email" type="email" autocomplete="email" required>
-
-          <label for="cad-senha">Senha</label>
-          <div class="campo-senha">
-            <input id="cad-senha" type="password" autocomplete="new-password" minlength="6" required aria-describedby="dica-senha">
-            <button type="button" class="ver-senha" data-alvo="cad-senha" aria-label="Mostrar senha">Mostrar</button>
-          </div>
-          <small id="dica-senha">Mínimo de 6 caracteres.</small>
-
-          <label for="cad-senha2">Repita a senha</label>
-          <input id="cad-senha2" type="password" autocomplete="new-password" required>
-
-          <button type="submit" class="botao">Criar conta</button>
-        </form>
-
-        <!-- Recuperar senha -->
-        <form id="form-recuperar" novalidate hidden>
-          <label for="rec-email">E-mail do cadastro</label>
-          <input id="rec-email" type="email" autocomplete="email" required>
-
-          <button type="submit" class="botao">Enviar link de redefinição</button>
-          <button type="button" class="link" data-view="login">Voltar para o login</button>
-        </form>
-      </div>
-    </main>
-
+<form id="form-cadastro" hidden>
+  <label for="cad-nome">Nome completo</label><input id="cad-nome" autocomplete="name">
+  <div class="so-medico">
+    <div class="g3"><div><label for="cad-crm">CRM</label><input id="cad-crm" inputmode="numeric" maxlength="8"></div>
+    <div><label for="cad-uf">UF</label><input id="cad-uf" maxlength="2" style="text-transform:uppercase"></div>
+    <div><label for="cad-tel">Telefone</label><input id="cad-tel" type="tel"></div></div>
+    <label for="cad-esp">Especialidade</label><input id="cad-esp" placeholder="Ex.: Nutrologia, Endocrinologia">
   </div>
+  <label for="cad-email">E-mail</label><input id="cad-email" type="email" autocomplete="email">
+  <p class="mt so-paciente" hidden>Use o mesmo e-mail que seu médico cadastrou para você.</p>
+  <label for="cad-senha">Senha</label><div class="senha"><input id="cad-senha" type="password" autocomplete="new-password"><button type="button" class="ver-senha" data-alvo="cad-senha">Mostrar</button></div>
+  <label for="cad-senha2">Repita a senha</label><div class="senha"><input id="cad-senha2" type="password" autocomplete="new-password"><button type="button" class="ver-senha" data-alvo="cad-senha2">Mostrar</button></div>
+  <button type="submit" style="width:100%;margin-top:1rem">Criar conta</button>
+</form>
 
-  <script type="module" src="js/auth.js"></script>
-</body>
-</html>
+<form id="form-recuperar" hidden>
+  <label for="rec-email">E-mail</label><input id="rec-email" type="email">
+  <button type="submit" style="width:100%;margin-top:1rem">Enviar link</button>
+  <p><button type="button" class="link" data-view="login">Voltar ao login</button></p>
+</form>
+</div></main>
+<script type="module" src="auth.js"></script></body></html>
