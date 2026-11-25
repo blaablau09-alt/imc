@@ -32,5 +32,11 @@ onAuthStateChanged(auth, async (u) => {
       return `<div class="meta ${x.status === "Alcançada" ? "feita" : ""}"><strong>${esc(x.titulo)}</strong> <span class="mt">· ${esc(x.status)}${x.prazo ? " · prazo " + fmtData(x.prazo) : ""}</span>${prog}${ac ? `<ul class="mt">${ac}</ul>` : ""}</div>`;
     }).join("") || `<div class="vazio">Seu médico ainda não definiu metas.</div>`}</div>
     <div class="card"><h2>Histórico</h2>${avs.length ? `<table><tr><th>Data</th><th>Peso</th><th>IMC</th><th>Classificação</th></tr>${avs.map((x) => `<tr><td>${fmtData(x.data)}</td><td>${x.peso} kg</td><td>${x.imc.toFixed(1)}</td><td>${tag(x.imc)}</td></tr>`).join("")}</table>` : `<div class="vazio">Sem histórico.</div>`}</div>`;
+    const ver = (i) => {
+      [...area.children].forEach((c, k) => (c.hidden = k !== i));
+      document.querySelectorAll(".nav button").forEach((b) => b.setAttribute("aria-current", +b.dataset.i === i ? "page" : "false"));
+    };
+    document.querySelectorAll(".nav button").forEach((b) => (b.onclick = () => ver(+b.dataset.i)));
+    ver(0);
   } catch (e) { console.error(e); area.innerHTML = `<div class="card vazio">Não foi possível carregar seus dados.</div>`; }
 });

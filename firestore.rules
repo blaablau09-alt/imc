@@ -1,18 +1,19 @@
-rules_version='2'
-
+rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      // This rule allows anyone with your database reference to view, edit,
-      // and delete all data in your database. It is useful for getting
-      // started, but it is configured to expire after 30 days because it
-      // leaves your app open to attackers. At that time, all client
-      // requests to your database will be denied.
-      //
-      // Make sure to write security rules for your app before that time, or
-      // else all client requests to your database will be denied until you
-      // update your rules.
-      allow read, write: if request.time < timestamp.date(2026, 12, 20);
+    function logado() { return request.auth != null; }
+    function donoMedico(pid) { return logado() && get(/databases/$(database)/documents/pacientes/$(pid)).data.medicoId == request.auth.uid; }
+    function ehPaciente(pid) { return logado() && get(/databases/$(database)/documents/pacientes/$(pid)).data.email == request.auth.token.email; }
+
+    match /medicos/{uid} { allow read, write: if logado() && request.auth.uid == uid; }
+
+    match /pacientes/{pid} {
+      allow create: if logado() && request.resource.data.medicoId == request.auth.uid;
+      allow read: if logado() && (resource.data.medicoId == request.auth.uid || resource.data.email == request.auth.token.email);
+      allow update, delete: if logado() && resource.data.medicoId == request.auth.uid;
+
+      match /avaliacoes/{id} { allow read: if donoMedico(pid) || ehPaciente(pid); allow write: if donoMedico(pid); }
+      match /metas/{id}      { allow read: if donoMedico(pid) || ehPaciente(pid); allow write: if donoMedico(pid); }
     }
   }
 }

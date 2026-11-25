@@ -19,7 +19,7 @@ import {
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-const PAGINA_MEDICO = "dashboard.html";
+const PAGINA_MEDICO = "medico.html";
 const PAGINA_PACIENTE = "paciente.html";
 
 const formularios = {
@@ -109,6 +109,9 @@ function traduzirErro(codigo) {
 // erros próprios (sem código do Firebase) mostram a própria mensagem
 const textoErro = (erro) => (erro.code ? traduzirErro(erro.code) : erro.message || traduzirErro());
 
+// e-mail precisa ter texto@dominio.extensão (ex.: nome@gmail.com)
+const emailValido = (v) => /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)*\.[A-Za-z]{2,}$/.test(v);
+
 /* ---------- Botão de carregamento ---------- */
 async function comCarregamento(form, textoEnvio, acao) {
   const botao = form.querySelector('button[type="submit"]');
@@ -150,6 +153,10 @@ formularios.login.addEventListener("submit", async (e) => {
 
   if (!email || !senha) {
     mostrarMensagem("Preencha o e-mail e a senha.", "erro");
+    return;
+  }
+  if (!emailValido(email)) {
+    mostrarMensagem("Digite um e-mail válido, como nome@exemplo.com.", "erro");
     return;
   }
 
@@ -194,6 +201,10 @@ formularios.cadastro.addEventListener("submit", async (e) => {
 
   if (!nome || !email || !senha) {
     mostrarMensagem("Preencha todos os campos.", "erro");
+    return;
+  }
+  if (!emailValido(email)) {
+    mostrarMensagem("Digite um e-mail válido, como nome@exemplo.com.", "erro");
     return;
   }
   if (perfil === "medico") {
@@ -259,6 +270,10 @@ formularios.recuperar.addEventListener("submit", async (e) => {
   const email = document.getElementById("rec-email").value.trim();
   if (!email) {
     mostrarMensagem("Informe o e-mail do seu cadastro.", "erro");
+    return;
+  }
+  if (!emailValido(email)) {
+    mostrarMensagem("Digite um e-mail válido, como nome@exemplo.com.", "erro");
     return;
   }
 

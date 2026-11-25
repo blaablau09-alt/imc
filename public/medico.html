@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Página do médico</title><link rel="stylesheet" href="css/style.css"></head>
+<body>
+<header class="topo"><strong id="quem">Página do médico</strong><button class="sec" id="sair">Sair</button></header>
+<nav class="nav" aria-label="Navegação">
+  <button data-aba="inicio" aria-current="page">Início</button><button data-aba="pacientes">Pacientes</button>
+  <button data-aba="metas">Metas</button><button data-aba="perfil">Meu perfil</button>
+</nav>
+<main class="wrap">
+  <div id="aviso" class="mensagem erro" hidden></div>
+  <section id="aba-inicio"></section>
+  <section id="aba-pacientes" class="cols" hidden>
+    <aside><div class="card"><h2>Pacientes</h2>
+      <input id="busca" placeholder="Buscar por nome" aria-label="Buscar paciente">
+      <div id="lista" style="margin-top:.7rem"></div>
+      <button id="novo" style="width:100%;margin-top:.5rem">Novo paciente</button></div></aside>
+    <section id="area"><div class="card vazio">Selecione um paciente ou cadastre um novo.</div></section>
+  </section>
+  <section id="aba-metas" hidden></section>
+  <section id="aba-perfil" hidden></section>
+</main>
+<script>
+(function(){var av=document.getElementById("aviso");function m(t){av.textContent=t;av.hidden=false}
+if(location.protocol==="file:")m("Página aberta direto do arquivo: os botões não funcionam. Use um servidor (Live Server ou Firebase Hosting).");
+window.addEventListener("error",function(e){m("Erro ao carregar: "+(e.message||"arquivo não encontrado")+". Abra o console (F12).")},true);})();
+</script>
+<script type="module" src="js/medico.js"></script></body></html>

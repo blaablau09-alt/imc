@@ -7,6 +7,7 @@
   <button type="button" id="perfil-paciente" aria-selected="false">Sou paciente</button>
 </div>
 <h1 id="titulo" style="font-size:1.4rem"></h1><p id="subtitulo" class="mt"></p>
+<div id="aviso" class="mensagem erro" hidden></div>
 <div id="mensagem" class="mensagem" hidden role="alert"></div>
 <div class="abas"><button type="button" id="aba-login" data-view="login" aria-selected="true">Já tenho cadastro</button>
 <button type="button" id="aba-cadastro" data-view="cadastro" aria-selected="false">Quero me cadastrar</button></div>
@@ -39,4 +40,10 @@
   <p><button type="button" class="link" data-view="login">Voltar ao login</button></p>
 </form>
 </div></main>
-<script type="module" src="auth.js"></script></body></html>
+<script>
+(function(){var av=document.getElementById("aviso");
+function m(t){av.textContent=t;av.hidden=false}
+if(location.protocol==="file:")m("Esta página foi aberta direto do arquivo, então os botões não funcionam. Abra por um servidor (ex.: Live Server do VS Code ou Firebase Hosting).");
+window.addEventListener("error",function(e){m("Erro ao carregar o sistema: "+(e.message||"arquivo não encontrado")+". Confira se firebase-config.js está na mesma pasta e abra o console (F12).")},true);})();
+</script>
+<script type="module" src="js/auth.js"></script></body></html>

@@ -1,7 +1,7 @@
 import { auth, db } from "./firebase-config.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
-  collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, arrayUnion
+  collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, arrayUnion, limit
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { esc, calcIMC, classificar, fmtData, hoje, tag } from "./util.js";
 
@@ -11,6 +11,49 @@ let medico = null, pacientes = [], atual = null, avs = [], metas = [];
 
 document.getElementById("sair").onclick = () => signOut(auth).then(() => (location.href = "index.html"));
 document.getElementById("novo").onclick = formPaciente;
+
+/* ---------- Navegação (dashboard) ---------- */
+const abas = ["inicio", "pacientes", "metas", "perfil"];
+function ir(aba) {
+  abas.forEach((a) => (document.getElementById("aba-" + a).hidden = a !== aba));
+  document.querySelectorAll(".nav button").forEach((b) => b.setAttribute("aria-current", b.dataset.aba === aba ? "page" : "false"));
+  if (aba === "inicio") renderInicio();
+  if (aba === "metas") renderMetas();
+  if (aba === "perfil") renderPerfil();
+}
+document.querySelectorAll(".nav button").forEach((b) => (b.onclick = () => ir(b.dataset.aba)));
+
+async function renderInicio() {
+  const el = document.getElementById("aba-inicio");
+  el.innerHTML = `<div class="card vazio">Carregando...</div>`;
+  const ult = await Promise.all(pacientes.map((p) =>
+    getDocs(query(collection(db, "pacientes", p.id, "avaliacoes"), orderBy("data", "desc"), limit(1))).then((s) => s.docs[0]?.data())));
+  const cont = {}; let sem = 0;
+  ult.forEach((a) => { if (!a) return sem++; const c = classificar(a.imc); (cont[c.txt] ||= { n: 0, cor: c.cor }).n++; });
+  el.innerHTML = `<h2>Olá, ${esc(medico.nome.split(" ")[0])}</h2><div class="cards">
+    <div class="card"><div class="num">${pacientes.length}</div><div class="mt">pacientes cadastrados</div></div>
+    ${Object.entries(cont).map(([t, v]) => `<div class="card"><div class="num">${v.n}</div><span class="tag ${v.cor}">${t}</span></div>`).join("")}
+    <div class="card"><div class="num">${sem}</div><div class="mt">sem avaliação</div></div></div>
+    <button id="irnovo">Cadastrar paciente</button>`;
+  document.getElementById("irnovo").onclick = () => { ir("pacientes"); formPaciente(); };
+}
+
+async function renderMetas() {
+  const el = document.getElementById("aba-metas");
+  el.innerHTML = `<div class="card vazio">Carregando...</div>`;
+  const rs = await Promise.all(pacientes.map(async (p) => ({ p, m: (await getDocs(collection(db, "pacientes", p.id, "metas"))).docs.map((d) => d.data()) })));
+  const linhas = rs.flatMap(({ p, m }) => m.filter((x) => x.status === "Em andamento").map((x) => ({ p, x })));
+  el.innerHTML = `<h2>Metas em andamento</h2>` + (linhas.length
+    ? linhas.map(({ p, x }) => `<div class="meta"><strong>${esc(x.titulo)}</strong> <span class="mt">· ${esc(p.nome)}${x.prazo ? " · prazo " + fmtData(x.prazo) : ""}</span> <button class="link" data-abrir="${p.id}">Abrir paciente</button></div>`).join("")
+    : `<div class="card vazio">Nenhuma meta em andamento.</div>`);
+  el.querySelectorAll("[data-abrir]").forEach((b) => (b.onclick = () => abrir(b.dataset.abrir)));
+}
+
+function renderPerfil() {
+  document.getElementById("aba-perfil").innerHTML = `<div class="card"><h2>Meu perfil</h2>
+    <p><strong>${esc(medico.nome)}</strong><br><span class="mt">${esc(medico.especialidade)} · CRM ${esc(medico.crm)}/${esc(medico.uf)}</span></p>
+    <p class="mt">E-mail: ${esc(medico.email)}<br>Telefone: ${esc(medico.telefone || "—")}</p></div>`;
+}
 document.getElementById("busca").oninput = desenharLista;
 
 onAuthStateChanged(auth, async (u) => {
@@ -20,6 +63,7 @@ onAuthStateChanged(auth, async (u) => {
   medico = { uid: u.uid, ...snap.data() };
   document.getElementById("quem").textContent = `Dr(a). ${medico.nome} · CRM ${medico.crm}/${medico.uf}`;
   await carregarPacientes();
+  ir("inicio");
 });
 
 async function carregarPacientes() {
@@ -52,6 +96,9 @@ function formPaciente() {
     e.preventDefault();
     const f = Object.fromEntries(new FormData(e.target));
     f.email = f.email.trim().toLowerCase(); f.nome = f.nome.trim(); f.altura = Number(f.altura);
+    if (!/^[^\s@]+@[^\s@.]+(\.[^\s@.]+)*\.[A-Za-z]{2,}$/.test(f.email)) {
+      const m = document.getElementById("msg"); m.textContent = "Digite um e-mail válido, como nome@exemplo.com."; m.hidden = false; return;
+    }
     if (pacientes.some((p) => p.email === f.email)) {
       const m = document.getElementById("msg"); m.textContent = "Você já cadastrou um paciente com esse e-mail."; m.hidden = false; return;
     }
@@ -62,6 +109,7 @@ function formPaciente() {
 
 /* ---------- Detalhe do paciente ---------- */
 async function abrir(id) {
+  ir("pacientes");
   atual = pacientes.find((p) => p.id === id); desenharLista();
   const base = collection(db, "pacientes", id);
   const [a, m] = await Promise.all([getDocs(query(collection(base, "avaliacoes"), orderBy("data", "desc"))), getDocs(collection(base, "metas"))]);
