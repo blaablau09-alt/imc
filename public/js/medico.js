@@ -111,7 +111,7 @@ function formPaciente() {
 async function abrir(id) {
   ir("pacientes");
   atual = pacientes.find((p) => p.id === id); desenharLista();
-  const base = collection(db, "pacientes", id);
+  const base = doc(db, "pacientes", id);
   const [a, m] = await Promise.all([getDocs(query(collection(base, "avaliacoes"), orderBy("data", "desc"))), getDocs(collection(base, "metas"))]);
   avs = a.docs.map((d) => ({ id: d.id, ...d.data() }));
   metas = m.docs.map((d) => ({ id: d.id, ...d.data() }));

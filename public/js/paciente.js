@@ -13,7 +13,7 @@ onAuthStateChanged(auth, async (u) => {
     if (s.empty) { area.innerHTML = `<div class="card vazio">Seu médico ainda não liberou seu cadastro.</div>`; return; }
     const pd = s.docs[0], p = pd.data();
     document.getElementById("quem").textContent = `Olá, ${p.nome.split(" ")[0]}`;
-    const base = collection(db, "pacientes", pd.id);
+    const base = doc(db, "pacientes", pd.id);
     const [a, m] = await Promise.all([getDocs(query(collection(base, "avaliacoes"), orderBy("data", "desc"))), getDocs(collection(base, "metas"))]);
     const avs = a.docs.map((d) => d.data()), metas = m.docs.map((d) => d.data());
     const ult = avs[0];
